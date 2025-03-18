@@ -5,6 +5,10 @@ steps:
       'build',
       '-t', 'gcr.io/${PROJECT_ID}/propertyblurb-frontend',
       '--build-arg', 'NEXT_PUBLIC_API_URL=${_BACKEND_URL}',
+      '--build-arg', 'NODE_ENV=${_NODE_ENV}',
+      '--build-arg', 'NEXT_TELEMETRY_DISABLED=1',
+      '--build-arg', 'NEXT_PUBLIC_POSTHOG_KEY=${_POSTHOG_KEY}',
+      '--build-arg', 'NEXT_PUBLIC_POSTHOG_URL=${_POSTHOG_URL}',
       '.'
     ]
   
@@ -29,12 +33,26 @@ steps:
       - >-
         NEXT_PUBLIC_API_URL=${_BACKEND_URL},
         NEXT_PUBLIC_POSTHOG_KEY=${_POSTHOG_KEY},
-        NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
+        NEXT_PUBLIC_POSTHOG_URL=${_POSTHOG_URL}
 
+# Default substitutions for production (main branch)
 substitutions:
   _REGION: europe-west1
   _BACKEND_URL: https://propertyblurb-backend-816018499473.europe-west1.run.app
   _POSTHOG_KEY: phc_zNCDCefGUF5ECu5w8Htyj2qPT7eXczCKj0Chrx02AEt
+  _POSTHOG_URL: https://eu.i.posthog.com
+  _NODE_ENV: production
+
+# Branch-specific configurations
+options:
+  dynamicSubstitutions: true
+
+# Add a comment explaining how to override these values
+# For development branch, create a trigger with these substitutions:
+# _BACKEND_URL: https://dev-propertyblurb-backend-url.run.app
+# _NODE_ENV: development
+# _POSTHOG_KEY: dev-key-here
+# _POSTHOG_URL: https://eu.i.posthog.com 
 
 images:
   - 'gcr.io/${PROJECT_ID}/propertyblurb-frontend' 

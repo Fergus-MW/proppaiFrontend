@@ -15,12 +15,19 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Set build-time variables
-ENV NEXT_PUBLIC_API_URL=https://propertyblurb-backend-816018499473.europe-west1.run.app
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV NEXT_PUBLIC_POSTHOG_KEY=phc_zNCDCefGUF5ECu5w8Htyj2qPT7eXczCKj0Chrx02AEt
-ENV NEXT_PUBLIC_POSTHOG_URL=https://eu.i.posthog.com
+# Define build arguments for different environments
+ARG NEXT_PUBLIC_API_URL
+ARG NODE_ENV=production
+ARG NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_POSTHOG_KEY
+ARG NEXT_PUBLIC_POSTHOG_URL
+
+# Set environment variables from build arguments
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NODE_ENV=${NODE_ENV}
+ENV NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED}
+ENV NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY}
+ENV NEXT_PUBLIC_POSTHOG_URL=${NEXT_PUBLIC_POSTHOG_URL}
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
