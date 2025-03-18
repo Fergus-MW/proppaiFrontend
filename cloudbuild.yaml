@@ -46,6 +46,13 @@ substitutions:
 # Branch-specific configurations
 options:
   dynamicSubstitutions: true
+  logging: CLOUD_LOGGING_ONLY
+  # Alternative options for logging:
+  # 1. Specify a logs bucket:
+  # logsBucket: 'gs://my-project-logs-bucket'
+  # 
+  # 2. Use regional user-owned bucket:
+  # defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
 
 # Add a comment explaining how to override these values
 # For development branch, create a trigger with these substitutions:
