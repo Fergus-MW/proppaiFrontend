@@ -1,6 +1,18 @@
 steps:
+  # Debug step to show build variables
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'debug-variables'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Building for branch: $_BRANCH_NAME"
+        echo "Using backend URL: ${_BACKEND_URL}"
+        echo "Environment: ${_NODE_ENV}"
+
   # Build frontend image
   - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-frontend'
     args: [
       'build',
       '-t', 'gcr.io/${PROJECT_ID}/propertyblurb-frontend',
@@ -14,14 +26,16 @@ steps:
   
   # Push the container image
   - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-frontend'
     args: ['push', 'gcr.io/${PROJECT_ID}/propertyblurb-frontend']
 
   # Deploy frontend service
   - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'deploy-frontend'
     args:
       - 'run'
       - 'deploy'
-      - 'propertyblurb-frontend'
+      - 'propertyblurb-frontend${_ENV_SUFFIX}'
       - '--image'
       - 'gcr.io/${PROJECT_ID}/propertyblurb-frontend'
       - '--region'
@@ -42,6 +56,8 @@ substitutions:
   _POSTHOG_KEY: phc_zNCDCefGUF5ECu5w8Htyj2qPT7eXczCKj0Chrx02AEt
   _POSTHOG_URL: https://eu.i.posthog.com
   _NODE_ENV: production
+  _BRANCH_NAME: main
+  _ENV_SUFFIX: ""  # empty for production
 
 # Branch-specific configurations
 options:
@@ -59,7 +75,9 @@ options:
 # _BACKEND_URL: https://dev-propertyblurb-backend-url.run.app
 # _NODE_ENV: development
 # _POSTHOG_KEY: dev-key-here
-# _POSTHOG_URL: https://eu.i.posthog.com 
+# _POSTHOG_URL: https://eu.i.posthog.com
+# _BRANCH_NAME: development
+# _ENV_SUFFIX: "-dev" # For creating a separate service
 
 images:
   - 'gcr.io/${PROJECT_ID}/propertyblurb-frontend' 

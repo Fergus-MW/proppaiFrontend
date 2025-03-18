@@ -29,6 +29,9 @@ ENV NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED}
 ENV NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY}
 ENV NEXT_PUBLIC_POSTHOG_URL=${NEXT_PUBLIC_POSTHOG_URL}
 
+# Debug: Print environment variables during build
+RUN echo "Building with NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}"
+
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
 
@@ -56,6 +59,12 @@ USER nextjs
 # Set runtime environment variables
 ENV PORT 8080
 ENV HOSTNAME "0.0.0.0"
+
+# Pass build-time env vars to runtime
+# These will only be used by server components, not client components
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY}
+ENV NEXT_PUBLIC_POSTHOG_URL=${NEXT_PUBLIC_POSTHOG_URL}
 
 EXPOSE ${PORT}
 
