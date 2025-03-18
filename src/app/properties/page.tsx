@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { PlusIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 // Import custom hooks
 import { useProperties } from "@/hooks/useProperties";
@@ -50,6 +50,7 @@ export default function PropertiesPage() {
   // Local state
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [formData, setFormData] = useState<PropertyFormData>({
     address: '',
@@ -93,6 +94,16 @@ export default function PropertiesPage() {
     resetAnalysis();
   };
   
+  // Details modal handlers
+  const openDetailsModal = (property: Property) => {
+    setSelectedProperty(property);
+    setIsDetailsModalOpen(true);
+  };
+  
+  const closeDetailsModal = () => {
+    setIsDetailsModalOpen(false);
+  };
+  
   // Delete handlers
   const openDeleteConfirm = (property: Property) => {
     setPropertyToDelete(property);
@@ -113,6 +124,7 @@ export default function PropertiesPage() {
       // If the deleted property was selected, clear the selection
       if (selectedProperty && selectedProperty._id === propertyToDelete._id) {
         setSelectedProperty(null);
+        setIsDetailsModalOpen(false);
       }
     }
     
@@ -122,6 +134,10 @@ export default function PropertiesPage() {
   // Property selection
   const selectProperty = (property: Property) => {
     setSelectedProperty(property);
+    // Only open the modal on mobile screens
+    if (window.innerWidth < 768) {
+      setIsDetailsModalOpen(true);
+    }
   };
   
   // Navigation
@@ -303,15 +319,15 @@ export default function PropertiesPage() {
             <p className="text-primary-dark">No properties found. Add your first property to get started.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
-            {/* Left column - Property tiles with fixed height and scrolling */}
-            <div className="h-[50vh] md:h-[calc(100vh-180px)] overflow-y-auto pr-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="md:grid md:grid-cols-2 md:gap-6 relative">
+            {/* Property tiles - full screen on mobile, left column on desktop */}
+            <div className="h-[calc(100vh-180px)] md:h-[calc(100vh-180px)] overflow-y-auto pr-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <style jsx>{`
                 div::-webkit-scrollbar {
                   display: none;
                 }
               `}</style>
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {properties.map((property) => (
                   <PropertyCard
                     key={property._id} 
@@ -326,8 +342,8 @@ export default function PropertiesPage() {
               </div>
             </div>
             
-            {/* Right column - Selected property details */}
-            <div className="h-[50vh] md:h-[calc(100vh-180px)] bg-card rounded-lg p-6 overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {/* Right column - Selected property details (desktop only) */}
+            <div className="hidden md:block h-[calc(100vh-180px)] bg-card rounded-lg p-6 overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <style jsx>{`
                 div::-webkit-scrollbar {
                   display: none;
@@ -354,6 +370,43 @@ export default function PropertiesPage() {
           progressPercentage={progressPercentage}
           elapsedTime={elapsedTime}
         />
+        
+        {/* Property Details Modal (mobile only) */}
+        {isDetailsModalOpen && selectedProperty && (
+          <div className="md:hidden fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+              </div>
+              
+              <div className="inline-block align-bottom bg-card rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div className="bg-card px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="sm:flex sm:items-start">
+                    <div className="text-center sm:mt-0 sm:text-left w-full">
+                      <div className="flex justify-between items-center">
+                        <button
+                          type="button"
+                          className="bg-primary hover:bg-primary-dark rounded-md p-1 text-background hover:text-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                          onClick={closeDetailsModal}
+                        >
+                          <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                        </button>
+                      </div>
+                      <div className="max-h-[85vh] overflow-y-auto pr-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        <style jsx>{`
+                          div::-webkit-scrollbar {
+                            display: none;
+                          }
+                        `}</style>
+                        <PropertyDetails property={selectedProperty} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Delete Confirmation Dialog */}
         <ConfirmDialog

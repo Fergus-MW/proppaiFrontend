@@ -15,6 +15,10 @@ interface Message {
   timestamp: Date;
 }
 
+interface ExamplePrompt {
+  prompt: string;
+}
+
 interface Props {
   propertyAnalysis?: {
     property_description: string;
@@ -50,6 +54,7 @@ export function ChatInterface({ propertyAnalysis }: Props) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [examplePrompts, setExamplePrompts] = useState<ExamplePrompt[]>([]);
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {
@@ -122,6 +127,107 @@ export function ChatInterface({ propertyAnalysis }: Props) {
       console.log('No propertyAnalysis received');
     }
   }, [propertyAnalysis]);
+
+  // Fetch example prompts
+  useEffect(() => {
+    const fetchExamplePrompts = async () => {
+      try {
+        const token = getCookie('token');
+        const response = await fetch(`${API_URL}/api/example-prompts`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            handleAuthError();
+            return;
+          }
+          throw new Error("Failed to fetch example prompts");
+        }
+
+        const data = await response.json();
+        setExamplePrompts(data.example_prompts || []);
+      } catch (error) {
+        console.error("Error fetching example prompts:", error);
+      }
+    };
+
+    if (isClient && propertyAnalysis) {
+      fetchExamplePrompts();
+    }
+  }, [isClient, propertyAnalysis]);
+
+  const handlePromptClick = (prompt: string) => {
+    setInput(prompt);
+    
+    // Create a slight delay before submitting to allow state update
+    setTimeout(() => {
+      // Only auto-submit if we have a property ID and it's not already loading
+      if (propertyAnalysis?._id && !isLoading) {
+        const userMessage: Message = {
+          role: "user",
+          content: prompt,
+          timestamp: new Date(),
+        };
+    
+        setMessages((prev) => [...prev, userMessage]);
+        setInput("");
+        setIsLoading(true);
+        
+        // Send the message to the API
+        const token = getCookie('token');
+        fetch(`${API_URL}/api/properties/${propertyAnalysis._id}/chat`, {
+          method: "POST",
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            content: prompt
+          }),
+        })
+        .then(response => {
+          if (!response.ok) {
+            if (response.status === 401) {
+              handleAuthError();
+              return null;
+            }
+            throw new Error("Failed to get response");
+          }
+          return response.json();
+        })
+        .then(result => {
+          if (result) {
+            const aiMessage: Message = {
+              role: "assistant",
+              content: result.content || "Sorry, I couldn't process your request.",
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, aiMessage]);
+          }
+        })
+        .catch(error => {
+          console.error("Error in chat:", error);
+          const errorMessage: Message = {
+            role: "assistant",
+            content: error instanceof Error 
+              ? `Error: ${error.message}` 
+              : "Sorry, I encountered an error processing your request.",
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+      }
+    }, 100);
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -307,7 +413,48 @@ export function ChatInterface({ propertyAnalysis }: Props) {
         )}
       </div>
 
-      <div className="p-4 bg-background-light">
+      {/* Example prompts section - only show when property is loaded and no messages from user yet */}
+      {examplePrompts.length > 0 && messages.length > 0 && messages.filter(m => m.role === "user").length === 0 && (
+        <>
+          {/* Mobile version - absolute positioned */}
+          <div className="md:hidden px-4 bg-transparent absolute bottom-20 left-0 right-0 z-10 -mb-5">
+            <div className="flex flex-wrap gap-3 max-h-28 overflow-y-auto scrollbar-hide mb-1">
+              {examplePrompts.map((promptItem, index) => (
+                <button
+                  key={`mobile-${index}`}
+                  onClick={() => handlePromptClick(promptItem.prompt)}
+                  className="px-3 py-1.5 bg-secondary-dark text-primary-dark text-sm rounded-md border border-neutral hover:bg-neutral/20 transition-colors shadow-md backdrop-blur-sm"
+                  title={promptItem.prompt}
+                >
+                  {promptItem.prompt.length > 30 
+                    ? promptItem.prompt.substring(0, 27) + "..." 
+                    : promptItem.prompt}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Desktop version - static positioned */}
+          <div className="hidden md:block px-4 bg-transparent z-10 mb-2">
+            <div className="flex flex-wrap gap-3 overflow-y-auto scrollbar-hide">
+              {examplePrompts.map((promptItem, index) => (
+                <button
+                  key={`desktop-${index}`}
+                  onClick={() => handlePromptClick(promptItem.prompt)}
+                  className="px-3 py-1.5 bg-secondary-dark text-primary-dark text-xs rounded-md border border-neutral hover:bg-neutral/20 transition-colors"
+                  title={promptItem.prompt}
+                >
+                  {promptItem.prompt.length > 30 
+                    ? promptItem.prompt.substring(0, 27) + "..." 
+                    : promptItem.prompt}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="pb-4 pl-4 pr-4 bg-background-light">
         <form onSubmit={handleSubmit} className="flex space-x-4">
           <input
             type="text"
