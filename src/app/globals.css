@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: theme('colors.background');
+  --foreground: theme('colors.foreground');
+  --background-light: theme('colors.background');
+  --background-dark: theme('colors.background-dark');
+  --foreground-light: theme('colors.secondary');
+  --foreground-dark: theme('colors.foreground');
+  --primary: theme('colors.primary');
+  --secondary: theme('colors.secondary');
+  --neutral: theme('colors.neutral');
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: theme('colors.background-dark');
+    --foreground: theme('colors.secondary');
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
