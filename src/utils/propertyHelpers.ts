@@ -49,7 +49,7 @@ export const processImage = (file: File): Promise<File> => {
         // Calculate new dimensions maintaining aspect ratio
         let width = img.width;
         let height = img.height;
-        const MAX_WIDTH = 2500;
+        const MAX_WIDTH = 3000;
         
         if (width > MAX_WIDTH) {
           height = Math.round(height * (MAX_WIDTH / width));
@@ -89,7 +89,7 @@ export const processImage = (file: File): Promise<File> => {
           );
           
           resolve(newFile);
-        }, 'image/jpeg', 0.92); // 92% quality JPEG
+        }, 'image/jpeg', 0.95); // 95% quality JPEG
       };
       
       img.onerror = () => {

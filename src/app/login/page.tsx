@@ -274,6 +274,11 @@ export default function LoginPage() {
                   placeholder="Enter your password"
                   disabled={isLoading}
                 />
+                <div className="mt-1 text-right">
+                  <Link href="/forgot-password" className="text-sm text-primary hover:text-primary-dark">
+                    Forgot your password?
+                  </Link>
+                </div>
               </div>
             </div>
 
