@@ -30,8 +30,8 @@ export function middleware(request: NextRequest) {
 
   // Handle authentication for non-PostHog routes
   const token = request.cookies.get('token')
-  const publicPaths = ['/login', '/signup']
-  const isPublicPath = publicPaths.includes(pathname)
+  const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password']
+  const isPublicPath = publicPaths.includes(pathname) || pathname.startsWith('/reset-password')
 
   if (!token && !isPublicPath) {
     const loginUrl = new URL('/login', request.url)
