@@ -3,11 +3,13 @@
 import { FormEvent, useState, useEffect, useRef } from "react";
 import { PaperAirplaneIcon } from "@heroicons/react/24/solid";
 import { ClipboardDocumentIcon } from "@heroicons/react/24/outline";
+import { PencilIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getCookie } from "@/utils/cookies";
+import { EditDescriptionModal } from "./EditDescriptionModal";
 
 interface Message {
   role: "user" | "assistant";
@@ -55,6 +57,8 @@ export function ChatInterface({ propertyAnalysis }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [examplePrompts, setExamplePrompts] = useState<ExamplePrompt[]>([]);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [isSavingDescription, setIsSavingDescription] = useState(false);
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {
@@ -297,6 +301,63 @@ export function ChatInterface({ propertyAnalysis }: Props) {
     }
   };
 
+  // Function to handle saving the edited description
+  const handleSaveDescription = async (newDescription: string) => {
+    if (!propertyAnalysis || !propertyAnalysis._id) {
+      console.error("No property found");
+      return;
+    }
+
+    setIsSavingDescription(true);
+
+    try {
+      const token = getCookie('token');
+      
+      // Call the new endpoint to update the description
+      const response = await fetch(`${API_URL}/api/properties/${propertyAnalysis._id}/description`, {
+        method: "PUT",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          description: newDescription
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        if (response.status === 401) {
+          handleAuthError();
+          return;
+        }
+        throw new Error(errorData?.detail || errorData?.message || "Failed to update description");
+      }
+
+      // Update the local state
+      // Find the latest assistant message and update it
+      const updatedMessages = [...messages];
+      for (let i = updatedMessages.length - 1; i >= 0; i--) {
+        if (updatedMessages[i].role === "assistant") {
+          updatedMessages[i] = {
+            ...updatedMessages[i],
+            content: newDescription
+          };
+          break;
+        }
+      }
+      
+      setMessages(updatedMessages);
+      setIsEditingDescription(false);
+    } catch (error) {
+      console.error("Error updating description:", error);
+      alert("Failed to update description. Please try again.");
+    } finally {
+      setIsSavingDescription(false);
+    }
+  };
+
   // Only render the full component on the client side
   if (!isClient) {
     return (
@@ -311,15 +372,17 @@ export function ChatInterface({ propertyAnalysis }: Props) {
           }
         `}</style>
         <div className="flex justify-center items-center py-6 bg-background-light">
-          <div className="h-[40px] flex items-center justify-center">
-            <Image
-              src="/proppai_logo_on_null.webp"
-              alt="proppai Logo"
-              width={300}
-              height={40}
-              priority
-              className="object-contain w-auto h-full"
-            />
+          <div className="w-full max-w-5xl flex items-center justify-between px-4">
+            <div className="h-[40px] flex items-center justify-center">
+              <Image
+                src="/proppai_logo_on_null.webp"
+                alt="proppai Logo"
+                width={300}
+                height={40}
+                priority
+                className="object-contain w-auto h-full"
+              />
+            </div>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-hide">
@@ -343,15 +406,28 @@ export function ChatInterface({ propertyAnalysis }: Props) {
         }
       `}</style>
       <div className="flex justify-center items-center py-6 bg-background-light">
-        <div className="h-[40px] flex items-center justify-center">
-          <Image
-            src="/proppai_logo_on_null.webp"
-            alt="proppai Logo"
-            width={300}
-            height={40}
-            priority
-            className="object-contain w-auto h-full"
-          />
+        <div className="w-full max-w-5xl flex items-center justify-between px-4">
+          <div className="h-[40px] flex items-center justify-center">
+            <Image
+              src="/proppai_logo_on_null.webp"
+              alt="proppai Logo"
+              width={300}
+              height={40}
+              priority
+              className="object-contain w-auto h-full"
+            />
+          </div>
+          
+          {messages.length > 0 && (
+            <button
+              onClick={() => setIsEditingDescription(true)}
+              className="flex items-center gap-1 py-2 px-4 border text-primary border-primary rounded-md text-foreground-light hover:bg-background-dark hover:text-background hover:border-background-dark transition-colors"
+              title="Edit property description"
+            >
+              <PencilIcon className="h-4 w-4" />
+              <span className="hidden md:inline">Edit Description</span>
+            </button>
+          )}
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-hide">
@@ -423,7 +499,7 @@ export function ChatInterface({ propertyAnalysis }: Props) {
                 <button
                   key={`mobile-${index}`}
                   onClick={() => handlePromptClick(promptItem.prompt)}
-                  className="px-3 py-1.5 bg-secondary-dark text-primary-dark text-sm rounded-md border border-neutral hover:bg-neutral/20 transition-colors shadow-md backdrop-blur-sm"
+                  className="py-1.5 px-3 border border-primary rounded-md text-foreground-light hover:bg-secondary hover:text-primary-dark hover:border-secondary transition-colors text-sm shadow-md backdrop-blur-sm"
                   title={promptItem.prompt}
                 >
                   {promptItem.prompt.length > 30 
@@ -441,7 +517,7 @@ export function ChatInterface({ propertyAnalysis }: Props) {
                 <button
                   key={`desktop-${index}`}
                   onClick={() => handlePromptClick(promptItem.prompt)}
-                  className="px-3 py-1.5 bg-secondary-dark text-primary-dark text-xs rounded-md border border-neutral hover:bg-neutral/20 transition-colors"
+                  className="py-1.5 px-3 border border-primary rounded-md text-foreground-light hover:bg-secondary hover:text-primary-dark hover:border-secondary transition-colors text-xs"
                   title={promptItem.prompt}
                 >
                   {promptItem.prompt.length > 30 
@@ -454,6 +530,25 @@ export function ChatInterface({ propertyAnalysis }: Props) {
         </>
       )}
 
+      {/* Edit Description Modal */}
+      {messages.length > 0 && (
+        <EditDescriptionModal
+          isOpen={isEditingDescription}
+          onClose={() => setIsEditingDescription(false)}
+          description={(() => {
+            // Find the most recent assistant message
+            for (let i = messages.length - 1; i >= 0; i--) {
+              if (messages[i].role === "assistant") {
+                return messages[i].content;
+              }
+            }
+            return "";
+          })()}
+          onSave={handleSaveDescription}
+          isLoading={isSavingDescription}
+        />
+      )}
+
       <div className="pb-4 pl-4 pr-4 bg-background-light">
         <form onSubmit={handleSubmit} className="flex space-x-4">
           <input
@@ -464,12 +559,12 @@ export function ChatInterface({ propertyAnalysis }: Props) {
               ? "Chat about the property or modify the description"
               : "Select or upload a property to start"}
             disabled={isLoading || messages.length === 0}
-            className="flex-1 rounded-lg bg-background-light text-primary-dark px-4 py-2 placeholder-neutral border focus:outline-none border-neutral disabled:opacity-50"
+            className="flex-1 rounded-md bg-background-light text-primary-dark px-4 py-2 placeholder-neutral border border-primary focus:outline-none focus:border-secondary disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={isLoading || !input.trim() || messages.length === 0}
-            className="rounded-lg bg-primary p-2 text-foreground-light hover:bg-opacity-90 focus:outline-none hover:bg-primary-dark focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="py-2 px-4 border border-primary rounded-md bg-primary text-foreground-light hover:bg-secondary hover:text-primary-dark hover:border-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {isLoading ? (
               <LoadingSpinner />
